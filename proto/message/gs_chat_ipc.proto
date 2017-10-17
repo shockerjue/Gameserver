@@ -1,0 +1,33 @@
+/**
+* 定义gameserver和chatserver之间的IPC通信协议
+*/
+syntax = "proto3";
+
+package inner_ipc;
+
+// 玩家上线通知chatserver消息协议
+message PlayerOnlineIPC {
+	int32 			rid  		= 1; 	//	玩家rid
+	int32 			gulid 		= 2;	//	玩家公会id
+	string			uname 		= 3; 	//	玩家名
+}
+
+// 玩家离线通知chatserver消息协议
+message PlayerOfflineIPC {
+	int32		 	rid 		= 1;	//	离线的玩家id
+	int32 			isexit 		= 2;	//	是否退出
+}
+
+// 发送聊天信息协议
+message ChatMsgIPC {
+	int32 			srid 		= 1;	//	发送消息的玩家rid
+	int32 			did 		= 2;	//	接收消息的玩家rid
+	int32 			type 		= 3;	//	聊天类型（1:个人聊天	2:公会聊天	3:世界聊天）
+	int32 			msg_type 	= 4; 	//	信息类型（1:声音	2:表情	3:文本）
+	int32 			tid 		= 5;	//	消息模板id
+	int32 			size 		= 6;	//	消息大小
+	int32 			status 		= 7;	//	状态
+	int32 			stime 		= 8;	//	时间
+	string 			msg 		= 9;	//	消息体
+	string 			sname 		= 10;	//	发送消息的玩家名
+}

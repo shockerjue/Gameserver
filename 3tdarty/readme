@@ -1,0 +1,35 @@
+### redis
+	https://github.com/redis/hiredis
+	使用redis需要进行开发配置，需要将lib目录下的libhiredis.so.0.13复制到对应的lib目录下:
+		如：/usr/lib/x86_64-linux-gnu/
+
+	项目编译的时候，还要家上-lhiredis编译链接。
+	-L是用于添加搜索路径
+	$(CXX) -o1 -o main $(objs) $(CXXFLAGS) $(LDFLAGS) -lmysqlclient -L $(TDARTY_LIB) -l hiredis
+
+	install:
+		make 
+		make install
+		Notice: set PREFIX?=./
+
+
+### protobuf
+	https://github.com/google/protobuf
+	使用protobuf需要进行开发配置，需要将protobuf/lib目录下的libhiredis.so.0.13复制到对应的lib目录下:
+		如：/usr/lib/x86_64-linux-gnu/
+
+	项目编译的时候，还要链接protobuf动态库
+	$(CXX) -o1 -o main $(objs) $(CXXFLAGS) $(LDFLAGS)  -L $(LIB) -lprotobuf
+
+	对于OS X系统，同样的需要将对应的库拷贝到相应的库目录中，OS X中库文件是以.dylib结尾的，
+		如:/usr/local/lib
+
+	编译和安装方式
+	./autogen.sh
+	./configure --prefix=..
+	make
+	make install
+
+	其中--prefix指定的是make install的安装目录，这里如果是要和项目一起的话，建议安装在某个指定的目录，然后将对应的
+	文件拷贝到项目中即可。如果要安装在系统中可以使用默认的设置即可。
+	

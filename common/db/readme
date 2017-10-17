@@ -1,0 +1,103 @@
+[dbmodule]
+数据库操作的基类，主要是实现了一些基础属性信息[host、port、dbname、user、pass]
+
+[mysqlutil]
+mysql操作类型，步骤：
+设置mysql信息
+连接到mysql
+查询和写入数据到数据库中
+
+查询结果：
+	由于查询以前不知道数据的行数，所以采用vector来存储查询结果。
+	其中每一个vector对象中的值是一行数据，里面存储的是map类型，
+	数据表中的列名对应数据，为了更好的使用查询到的数据，这里使用
+	Value类来存储数据，所以map的定义是map<string,Value>
+
+使用方法
+```
+	MysqlUtil* pMysqlUtil = new MysqlUtil();
+
+	/**
+	* 设置连接信息
+	*/
+	pMysqlUtil->SetHost(config->getStringByKey("dbhost"));
+	pMysqlUtil->SetPort(config->getIntByKey("dbport"));
+	pMysqlUtil->SetDbName(config->getStringByKey("dbname"));
+	pMysqlUtil->SetUser(config->getStringByKey("dbuser"));
+	pMysqlUtil->SetPass(config->getStringByKey("dbpass"));
+	Log::Print(__func__, pMysqlUtil->toString());
+	
+	/**
+	* 连接到数据库
+	*/	
+	bool ret = pMysqlUtil->InitConnection();
+
+	/**
+	* 插入数据
+	*/
+	int rows = pMysqlUtil->Exec("INSERT INTO ems(ems_filename,ems_date) value('11111111111111175','2017-06-16')");
+
+	/**
+	* 更新数据
+	*/
+	int rows = pMysqlUtil->Exec("UPDATE ems SET ems_filename='0000000000000000' WHERE ems_id=222");
+	Log::Print(__func__,rows);
+
+	/**
+	* 查询数据
+	*/
+	vector<map<string,Value> > data = pMysqlUtil->Selection("SELECT * FROM ems LIMIT 0,10");
+	vector<map<string,Value> >::iterator it = data.begin();
+	while(it != data.end()){
+		map<string,Value>::iterator temp = it->begin();
+		while(temp != it->end()){
+			cout<<temp->first<<":"<<temp->second.toString()<<"  ";
+			temp++;
+		}
+		cout<<endl;
+
+		it++;
+	}
+
+	delete pMysqlUtil;
+	pMysqlUtil = nullptr;
+
+```
+
+[redisutil]
+redis操作类
+	基本的属性和mysql操作的差不多的，唯一不同的是数据的访问和写入。
+	写入数据写入的是string类型，读取使用Value存储，主要是
+	后续的数据转换。
+
+```
+	RedisUtil* pRedisUtil = new RedisUtil();
+
+	/**
+	* 设置连接信息
+	*/
+	pRedisUtil->SetHost(config->getStringByKey("rshost"));
+	pRedisUtil->SetPort(config->getIntByKey("rsport"));
+	Log::Print(__func__, pRedisUtil->toString());
+
+	/**
+	* 连接到数据库
+	*/
+	bool ret = pRedisUtil->InitConnection();
+	if(ret){
+		Log::Print(__func__, "Connect redis success!");
+	}
+
+	/**
+	* 插入数据或修改数据
+	*/
+	pRedisUtil->Set("name","shockerjue");
+
+	/**
+	* 查询数据
+	*/
+	Log::Print(pRedisUtil->Get("name").toString());
+
+	delete pRedisUtil;
+	pRedisUtil = nullptr;
+```

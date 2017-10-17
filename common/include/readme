@@ -1,0 +1,333 @@
+###
+主要是缓存管理、共享内存管理、配置管理实现以及定义
+
+[cachemodule]
+一个抽象方法，主要是定义了缓存的公共属性。缓存采用key-value的方式存储。
+{
+	初始化缓存结构
+	清楚缓存
+	删除对应缓存项
+	添加缓存项
+	更新缓存项
+	统计缓存尺寸
+}
+
+
+[cachemanage]
+缓存管理器，里面主要是管理缓存器对象，可以理解为缓存工厂类
+
+
+[ramcache]
+内出管理器
+	主要应用在需要短期存储的地方，如登录验证信息的存储以及等待登录信息的存储。
+	提前分配一个管理结构的内存缓存池空间[m_cache]，并初始化这个缓存管理空间。池结构是一个数组结构。
+	管理的结构是：
+	```
+		struct RamItem {
+			string 			m_key;			//	缓存项对应的key
+			int 			m_dirt;			//	缓存项是否是是有效的
+			unsigned int 	m_size;			//	缓存项存储数据的大小
+			char*			m_data;			//	缓存项存储的数据
+			struct RamItem*	m_free;			//	
+			struct RamItem*	m_next;			//	
+			unsigned long 	m_uptime;		//	缓存更新时间	
+		};
+	```
+	其中每一个RamItem管理一个缓存项。其中m_data存储的是缓存对象，由此可以知道每一个管理项都有自己
+	缓存数据和大小。两个缓存项之间可以存储不相同大小的缓存数据。
+
+
+	添加缓存
+	检查需要添加的缓存Key是否存在，如果存在这直接返回或者是更新信息的缓存，api[addcache/addOrUpdateCache]。
+	由于采用了缓存池的策略，在添加以前需要找到空闲/过期的缓存项，然后添加
+	或者更新缓存。如果没有空闲项，则选取最早设置的项，并更新到需要存储的缓存。查询空闲项的方法：
+	```
+		for(i = 0; i < RAMCACHE_LEN; i++){
+			if(nullptr == this->m_cache[i].m_data){
+				return i;
+			}
+
+			if(this->m_cache[i].m_uptime < uptime){
+				uptime = this->m_cache[i].m_uptime;
+				index = i;
+			}
+		}
+	```
+	依次遍历所有的缓存池项，知道找到或者池遍历结束。
+
+	获取缓存
+	检查对应的key的缓存信息是否存在，如果存在则验证是否超过有效时间，如果未超时则返回对应的缓存数据。
+	如果已经超时则不返回数据，并将缓存数据从缓存池中移除，这就意味着访问缓存不命中。这里返回的话只要
+	获取缓存池中存储的数据即可：memcpy(cache,this->m_cache[index].m_data,this->m_cache[index].m_size);
+
+
+	移除缓存项
+	这里主要是根据Key值去释放对应的缓存空间，并将缓存管理结构恢复默认值。
+
+	清除所有缓存
+	释放所有有效的缓存空间，并恢复默认值。
+
+
+[filecache]
+文件缓存管理
+	主要是使用文件来存储缓存数据，用于存储需要断电保存、需要长期保存以及不是频繁访问的数据。
+	这种方式的保存，在服务器开启时，需要将缓存索引加载的内存中。
+
+	这里采用单项链表来管理索引。
+
+	存储方式是采用索引文件+内容存储两种文件。索引文件存储的是缓存项的管理结构；内容文件存储
+	缓存的数据，其中采用块来存储，一个数据库块代表了一个缓存数据，一个内容文件可以存储多项
+	缓存数据。仅有一个索引文件，却包含多个缓存数据存储文件，一个文件最大存储4MB的数据，同样的
+	索引文件也仅仅是存储4MB。索引的结构是：
+	```
+		struct FileItem {
+			char 				m_key[20];		//	缓存项的key
+			char				m_file[128];	//	缓存内容所存储的位置文件
+			int 				m_offset;		//	内容在文件中的位置
+			int 				m_size;			//	内容的大小
+			int 				m_dirt;			//	如果等于1，那说明这是无效数据，已经被移除
+			long 				m_uptime;		//	缓存项的更新时间
+			struct FileItem* 	m_pNext;		//	指向缓存项的下一项
+		};
+	```
+
+	一个索引项大小是172B,一个索引文件可以存储24385项索引。
+	假如一个索引管理的是最大容量的缓存数据，可以管理24385 * 4MB = 95GB。
+	由于是长期保存，所以数据不进行删除，即使用删除缓存操作不会影响缓存文件的大小，删除仅仅是将数据设置为无效状态。更新可以改变数据和数据的大小。这种方式最后会出现缓存内容碎片。
+	方式
+	index_file 										content_file
+	|index1|index2|...							|index1_content|index2_content|....
+
+	装载缓存
+		打开缓存索引文件，从中足块的读取数据，必须是索引块的整数倍，更新读取出来的索引数据，初始化缓存
+		管理结构，即用索引数据初始化管理链表。
+
+	添加缓存
+		先遍历链表，看对应key的缓存数据是否存在，如果存在可以选择更新缓存数据，或者直接返回。如果不存在，新建一个缓存管理项，并进行初始化，将该管理项添加到链表中，并将缓存的数据写入到缓存文件中。
+
+	更新缓存
+		遍历对应的缓存是否存在，如果不存在则直接返回，如果存在则更新对应的缓存数据以及索引项。
+
+	访问缓存
+		在管理链表中获取对应key的管理项，如果不存在则直接返回，如果存在根据管理项中的数据信息获取对应的缓存数据。缓存管理项中包含了缓存数据的缓存文件、位置、大小等信息，通过这些信息获取数据。
+
+	移除缓存
+		将对应的数据从管理连中移除。
+
+	将索引回写到文件中
+		遍历链表，将链表中对应的项（CacheItem）写到索引文件中。
+
+	清除所有的缓存项
+		将缓存管理链表释放
+
+
+[shareram]
+共享内存管理
+	共享内存管理的方式类似于linux系统中的缓冲区管理。先分配一段共享内存，然后采用两头分配的方式进行规划。两头像中间靠拢，共享内存的前半部分是管理结构，后半部分是数据，使用这种方式能够在不同的进程中进行数据的同步。
+	```
+		struct ShareItem {
+			int 	rid;			//	存储玩家对应的id,用于标识数据的有效性
+			int 	lock;			//	标识数据是否被使用（主要用于数据同步或互斥访问）
+			int 	update;			//	标识数据是否可以更新
+			int		size;			//	数据的尺寸
+			int 	total;			//	数据的大小
+			void* 	data;			//	数据存储指针
+		};
+	```
+	其中data指向的就是共享内存中存储数据的起始位置，数据长度是size，最大是total，即data中存储的数据可以小于等于total，但是不能大于total。共享内存适用于存储大小固定的数据库以及需要在不通进程或者是不同线程中进行共享的方式。
+	仅仅是作为一种非永久性的缓存机制，在合理的地方需要进行同步存储。可以在同步线程或同步进程中对数据进行回写到文件或者数据库中。
+
+	步骤
+	[创建共享内存]
+		通过系统调用创建一个需要的大小的共享内存，这里需要根据想要存储的数据来分块进行分配，最大为1000块，如每个块的大小是1024KB，那最大就是1000 * 1024B = 1MB.
+		创建的API
+		```
+			/**
+			* @param nsize  	块的大小
+			* @param len 		块数
+			*/
+			create(int nsize,int len);
+		```
+		所以最后共享内存的大小是：1000 * 1024 + 1000 * sizeof(struct ShareItem)B = 1.24MB
+
+	[初始化共享内存]
+		共享内存分配以后，需要进行初始化设置，通linux中的高速缓冲器的初始化类似一样。一个管理结构，结构中有一个成员指向数据存储区。同时还要初始化一个哈希器，用于获取缓存数据区。
+		```
+			while(begin < end && hashindex < HASH_SIZE){
+				begin->rid = 0;
+				begin->lock = 0;
+				begin->update = 0;
+				begin->size = 0;
+				begin->total = nsize;
+				begin->data = end;
+				
+				this->m_hash[hashindex++] = begin;
+
+				begin++;
+				end = (char*)end - nsize;
+			}
+		```
+
+	[加载已经有数据库的缓存区]
+		由于是共享内存，进程在使用时并不知道里面是否有数据，为了保证数据信息不被修改或者删除，一般不使用初始化设置，而是使用加载。将缓存区中的数据加载到管理结构中。
+		```
+			while(begin < end){
+				this->m_hash[hashindex] = begin;
+				this->m_hash[hashindex]->data = end;
+
+				if(begin->rid){
+					this->m_ridhid[begin->rid] = hashindex;
+				}else {
+					this->m_hash[hashindex]->rid = 0;
+					this->m_hash[hashindex]->lock = 0;
+					this->m_hash[hashindex]->update = 0;
+					this->m_hash[hashindex]->size = 0;
+					this->m_hash[hashindex]->total = nsize;
+				}
+
+				begin++;
+				hashindex++;
+
+				end = (char*)end - nsize;
+			}
+		```
+
+	[保存数据到缓存中]
+		先从哈希表中找到空闲的项，如果没有找到则说明共享内存已经被使用完，则直接返回。如果找到空闲项，且要存储的数据小于等于total，则直接设置缓存。在保存数据以前，需要先给缓冲区加锁，等数据写入完毕以后在解锁缓存。
+		```
+			this->m_ridhid[rid] = i;
+			this->m_hash[i]->lock = 1;
+			this->m_hash[i]->rid = rid;
+			this->m_hash[i]->size = size;
+			memcpy(this->m_hash[i]->data,data,size);
+			this->m_hash[i]->lock = 0;
+		```
+
+	[移除缓存数据]
+		移除数据主要是将内存初始化为0和未使用状态。
+
+	[更新缓存数据]
+		更新采用整体更新策略，即重新设置缓存区的数据。
+		```
+			this->m_hash[index]->lock = 1;
+			this->m_hash[index]->size = size;
+			memset(this->m_hash[index]->data,0,this->m_hash[index]->total);
+			memcpy(this->m_hash[index]->data,data,size);
+			this->m_hash[index]->lock = 0;
+		```
+
+
+[configmodule]
+配置解析模块
+	解析固定格式的文件，从而获取里面所要的值。配置格式key=value的方式，如果不是这种格式，则这个配置将被抛弃。且key的格式只能是字母或者是数字,value只能是字母、数字或者是'.'组成，如果里面包含以外的字符，那这个配置项将被抛弃。
+	key解析
+	```
+		while(nullptr != p && (('a' <= *p && 'z' >= *p) ||
+			('A' <= *p && 'Z' >= *p) || ' ' ==  *p || 
+			'0' <= *p && '9' >= *p) && 512 > i){
+			if(' ' == *p){
+				p++;
+
+				continue;
+			}
+
+			key[i++] = *p;
+			p++;
+		}
+	```
+	value解析
+	```
+		while(nullptr != p && (('a' <= *p && 'z' >= *p) || 
+			('A' <= *p && 'Z' >= *p) || ('0' <= *p && '9' >= *p) 
+			|| '.' == *p || ' ' == *p) && 512 > i){
+			if(' ' == *p){
+				p++;
+
+				continue;
+			}
+
+			value[i++] = *p;
+			p++;
+		}
+	```
+	解析的value采用Value类来存储，这样可以将其转换成Int、char、bool、float、string类型。
+
+	步骤
+	[加载文件并解析]
+		这个过程是按行读取数据，将行数据解析成[key:value]存储到数据结构中，存储结构使用<string,Value>。其中如果行中包含特殊字符，那么这行配置将不会被解析，且并不会出现解析失败的情况，所以要加注释必须在行前或者行后使用特殊字符开始的行。
+		```
+		[explain]
+		key1 = value1
+		key2 = value2
+		key3 = value3 //explain
+		...
+		```
+		其中[explain]将不会被解析，能解析的仅仅是“key1 = value1 和key2 = value2”。其中“key3 = value3 // explain”将不会被解析，被默认为是注释行。
+
+	[获取配置值]
+		获取配置值主要是通过key获取，如果不存在则返回默认值，Int默认值是0，Char的默认值是0，Float默认值是0.0，Bool默认值是false，string默认值是""。
+
+
+
+[value]
+	值的转换类，将string类型转换成想要的值，可以作为数据查询和配置文件的值类型。
+
+
+[thread]
+线程定义
+	其中定义了消息实体和线程实体。
+	线程实体主要定义了线程的创建以及执行，以及线程的管理、线程到主线程之间的消息传递，消息传递是单向的，仅仅能从线程发送消息到主线程，并在主线程中处理各种线程消息。
+	线程的实现是将线程的定义和实现体分离开来。实现体可以自由定义,通过Thread_Func(n)宏定义，
+	其中n是实现体的标识，用于标识多个线程实体，如：
+	```
+		Thread_Func(thread1){
+			Thread* thread = (Thread*)_thread;
+			// To DO
+			...
+		}
+	```
+	定义完以后可以使用Thread_Call(n)宏将实现体赋值给线程运行，n就是定义实现体时传递的标识。线程运行通过Thread对象的run方法，如
+	```
+		Thread thread("thread1");
+		thread.run(Thread_Call(thread1));
+	```
+	可以启动线程执行Thread_Func定义的方法，一个Thread对象仅能有一个执行实体。即要运行一个线程实体，Thread_Func和ThreadCall是成对出现的。在线程实体中可以访问当前创建的线程对象，访问方法是：
+	```
+		Thread* thread = (Thread*)_thread;
+	```
+
+	消息类Message定义了线程到主线程（进程）间通信的对象，其中包括消息类型(what)、消息长度(size)、消息体(obj)。接受消息和发送消息都是这个类型表示一个消息实体。
+	发送消息到主线程通过Thread类的静态方法sendMessage，当主线程接受到线程消息以后会回调NetworkCallback的onThreadMsg方法。线程中发送消息如：
+	```
+		int data = ..;
+
+		Message message;
+		message.setwhat(1);
+		message.setsize(4);
+		message.setobject((char*)&data,sizeof(data));
+
+		Thread::sendMessage(message);
+	```
+	消息体可以是一个对象，也可以是数据。
+
+	其中多个线程共用同一个通信机制，且消息的接收从创建线程开始，必须在Engine对象的Run方法调用以前创建，或者是在Run方法运行以后主动调用Engine的AddThreadEvent方法添加消息接收机制。
+
+	[example]
+	```
+		Thread_Func(thread1){
+			Thread* thread = (Thread*)_thread;
+			//...
+			int data = 1;
+
+			Message message;
+			message.setwhat(1);
+			message.setsize(4);
+			message.setobject((char*)&data,sizeof(data));
+
+			Thread::sendMessage(message);
+			//...
+		}
+
+		Thread thread("thread1");
+		thread.run(Thread_Call(thread1));
+	```

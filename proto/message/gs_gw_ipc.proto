@@ -1,0 +1,30 @@
+/**
+* 定义gameserver和gameworld之间的IPC通信协议
+*/
+syntax = "proto3";
+
+package inner_ipc;
+
+// 玩家进入游戏
+message EnterGameIPC {
+	int32 					rid 		= 1;
+}
+
+// 玩家退出游戏
+message ExitGameIPC {
+	int32 					rid 		= 1;
+}
+
+// 玩家未知的断开连接
+message DisconnectIPC {
+	int32 					rid 		= 1;
+}
+
+// 玩家重新连接
+message ReConnectIPC {
+	int32 					rid 		= 1;
+}
+
+message RequestRolesIPC {
+	repeated ReConnectIPC 	ipc 		= 1;
+}

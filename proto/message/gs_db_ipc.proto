@@ -1,0 +1,97 @@
+/**
+* 定义了gameserver和dataaccess之间的IPC通信协议
+*/
+syntax = "proto3";
+
+package inner_ipc;
+
+//	玩家信息
+message RoleInfo {
+	int32 						rid 			= 2;
+	string 						name 			= 3;
+}
+
+message LoginInfo {
+	int32 						rid 			= 1;
+}
+
+// 请求角色信息
+message ReqRoleInfoIPC {
+	int32 						rid				= 1;	//	玩家自己的rid
+	int32 						requestId		= 2;	//	玩家对应的网络Id
+	int32						reqrid			= 3;	//	被请求的玩家rid 	为0时请求的是自己的
+}
+
+// 响应角色信息请求
+message ResRoleInfoIPC {
+	int32 						rid				= 1;	//	玩家自己的rid 
+	int32 						requestId		= 2;	// 	玩家发起请求的完了id
+	int32 						reqrid 			= 3;	//	被请求的玩家rid
+	RoleInfo 					info			= 4;	//	角色新
+	string 						name 			= 5;
+}
+
+// 好友项
+message FriendItem {
+	int32 						rid 			= 1;	//	好友rid
+	int32 						status 			= 2;	//	状态 {0:离线   1:在线}
+	int32 						timeline 		= 3;	//	状态时长
+	string 						username 		= 4;	//	好友名
+}
+
+// 请求好友列表
+message	ReqFriendsIPC {
+	int32 						rid				= 1;	//	发起请求的玩家id
+	int32 						requestId 		= 2;	//	玩家网络句柄
+	int32						type 			= 3; 	//	请求的类型 {0:在线	 1:不在线 	2:所有}
+}
+
+// 响应好友列表请求
+message ResFriendsIPC {
+	int32 						rid				= 1;	//	响应的玩家id
+	int32 						requestId 		= 2;	//	响应的玩家网络句柄
+	repeated FriendItem 		friends 		= 3;	//	好友列表
+}
+
+// 添加好友请求
+message ReqAddFriendIPC {
+	int32						rid				= 1;	//	要添加的好友rid
+	int32 						arid 			= 2;	//	要添加的好友rid
+	int32 						requestId 		= 3;	//	请求的网络id
+}
+
+// 添加好友响应
+message ResAddFriendIPC {
+	int32 						rid 			= 1;	//	玩家rid
+	int32 						requestId 		= 2;	//	请求的网络ID
+	int32 						status 			= 3;	//	添加状态	{0:成功  1:玩家不存在  2:已经是好友}
+	FriendItem					friend 			= 4; 	//	好友信息
+}
+
+// 发送聊天信息协议
+message OfflineMsgItem {
+	int32 			srid 		= 1;	//	发送消息的玩家rid
+	int32 			did 		= 2;	//	接收消息的玩家rid
+	int32 			type 		= 3;	//	聊天类型（1:个人聊天	2:公会聊天	3:世界聊天）
+	int32 			msg_type 	= 4; 	//	信息类型（1:声音	2:表情	3:文本）
+	int32 			tid 		= 5;	//	消息模板id
+	int32 			msg_size 	= 6;	//	消息大小
+	int32 			stime 		= 7;	//	时间
+	string 			msg 		= 8;	//	消息内容  {如果是音频、视频则是存储地址；图像也可以用地址来表示}
+	string 			sname 		= 9;	//	发送消息的玩家名
+}
+
+message ReqOfflineMsgIPC {
+	int32 						rid 		= 1;	//	玩家rid
+	int32						type 		= 2;	//	请求的类型
+	int32 						rrid 		= 3;	//	请求的玩家rid
+	int32 						count 		= 4;	//	请求的数量
+	int32 						requestId 	= 5;	//	请求的网络id
+}
+
+message ResOfflineMsgIPC {
+	int32 						rid 		= 1;	//	玩家rid
+	int32 						requestId	= 2;	//	发起请求的网络id
+	int32 						count		= 3; 	//	消息数量
+	repeated 	OfflineMsgItem	msgs 		= 4;	//	消息列表
+}

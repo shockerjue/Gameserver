@@ -1,0 +1,15 @@
+{
+    "platom_count":4,
+    "1":{
+        "platom_id":"1"
+    },
+    "2":{
+        "platom_id":"qq_001"
+    },
+    "3":{
+        "platom_id":"weixin_002"
+    },
+    "4":{
+        "platom_id":"weibo_004"
+    }
+}

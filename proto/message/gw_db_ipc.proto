@@ -1,0 +1,6 @@
+/**
+* 定义gameworld和dataaccess之间的IPC的通信协议
+*/
+syntax = "proto3";
+
+package inner_ipc;

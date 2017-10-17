@@ -1,0 +1,45 @@
+/**
+* 定义chatserver和DB之间的IPC通信协议
+*
+* 图像、音频、视频均采用存储云来存储，这样在游戏数据库中仅仅存储信息地址就可以了
+*/
+syntax = "proto3";
+
+package inner_ipc;
+
+
+// 发送聊天信息协议
+message OfflineMsgIPC {
+	int32 			srid 		= 1;	//	发送消息的玩家rid
+	int32 			did 		= 2;	//	接收消息的玩家rid
+	int32 			type 		= 3;	//	聊天类型（1:个人聊天	2:公会聊天	3:世界聊天）
+	int32 			msg_type 	= 4; 	//	信息类型（1:声音	2:表情	3:文本）
+	int32 			tid 		= 5;	//	消息模板id
+	int32 			size 		= 6;	//	消息大小
+	int32 			stime 		= 7;	//	时间
+	string 			msg 		= 8;	//	消息内容  {如果是音频、视频则是存储地址；图像也可以用地址来表示}
+	string 			sname 		= 9;	//	发送消息的玩家名
+}
+
+// 邮件内容协议类型
+message EmailBody {
+    int32               emailType       = 1;    //  邮件内容中序列的类型 {文字；表情；音频；视频；图像}
+    string              emailBody       = 2;    //  邮件内容序列中的内容 {如果是音频、视频则是存储地址；图像也可以用地址来表示}
+}
+
+// 将email保存到DB中的协议
+message EmailMsgIPC {
+    int32               sendRid         = 1;    //  邮件发送者
+    int32               recvRid         = 2;    //  邮件接收者
+    int32               emailType       = 3;    //  邮件类型 {系统邮件；私信；公会邮件}
+    string              emailHead       = 4;    //  邮件标题
+    repeated EmailBody  emailBody       = 5;    //  邮件体列表{文字、表情、图像、音频、视频组成}
+}
+
+// 将离线物品信息保存到DB的协议
+message OfflineGoodsIPC {
+    int32               sendRid         = 1;    //  发送玩家rid
+    int32               recvRid         = 2;    //  接收玩家rid
+    int32               count           = 3;    //  物品数量
+    int32               goodsId         = 4;    //  物品id
+}

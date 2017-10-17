@@ -1,0 +1,40 @@
+/**
+* 定义role与gateway通信协议
+*/
+syntax = "proto3";
+
+package gateway_proto;
+
+// 请求登录验证
+message RoleLoginRequest {
+	int32 				sdkId 		= 1;	//	sdkID
+	string 				platomId 	= 2;	//	平台id
+	string 				userName 	= 3;	//	玩家名	
+}
+
+// 请求登录验证返回{返回登录验证信息}
+message RoleLoginResponse {
+	int32				port 		= 1;	//	服务器端口
+	int32 				rid 		= 2; 	//	玩家rid
+	int32				status 		= 3;	//	登录状态码
+	string				address 	= 4; 	//	服务器地址
+	string				key 		= 5;	//	登录key
+	string				msg 		= 6; 	//	登录信息
+}
+
+// 请求创建角色验证
+message CreateRoleRequest {
+	int32 			sdkId 			= 1;	// 	sdkID
+	string 			platomId 		= 2; 	//	平台id
+	string 			userName 		= 3; 	//	角色名
+}
+
+// 请求创建角色验证返回{返回创建信息以及登录信息}
+message CreateRoleResponse {
+	int32				port 		= 1;	//	服务器端口
+	int32 				rid 		= 2; 	//	玩家rid
+	int32				status 		= 3;	//	登录状态码
+	string				address 	= 4; 	//	服务器地址
+	string				key 		= 5;	//	登录key
+	string				msg 		= 6; 	//	登录信息
+}

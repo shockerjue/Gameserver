@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+package msghandle;
+
+// 定义消息头部
+message MessageHeader1 {
+	int32 		msg_type 	= 1;	//	消息类型
+	int32 		msg_size 	= 2;	//	消息尺寸
+}

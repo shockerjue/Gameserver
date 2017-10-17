@@ -1,0 +1,22 @@
+/**
+* 定义服务器直接的通信协议
+*/
+
+syntax = "proto3";
+
+package inner_ipc;
+
+//	各个服务用于传递日志的message
+message SystemLogIPC {
+	int32 			level	= 1;	//	日志的等级
+	string 			proc 	= 2;	//	服务器名
+	string			date	= 3;	//	日志产生的日期时间
+	string			func	= 4;	//	日志生成的函数名
+	string			msg 	= 5;	//	日志信息
+}
+
+//	通知的协议
+message	NotiIPC {
+	int32 			notiid 		= 1;	//	通知的id标识
+	string 			noti 		= 2;	//	通知的数据
+}

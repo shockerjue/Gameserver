@@ -1,0 +1,17 @@
+/**
+* 定义gameserver和login之间的IPC通信协议
+*/
+syntax = "proto3";
+
+package inner_ipc;
+
+// 当玩家连接gameserver服务器的时候，通知login服务器的协议
+message IoServerLoginIPC {
+	int32 				op 		= 1; 	//	操作类型   {0:端口连接   1:玩家连接}
+}
+
+//	玩家验证通过时，通知gameserver服务器的协议
+message LoginIoServerIPC {
+	int32				rid 	= 1;	//	通过验证的玩家rid{rid是获取所有信息的key}
+	string 				key 	= 2;	//	验证以后，进入游戏的key值
+}

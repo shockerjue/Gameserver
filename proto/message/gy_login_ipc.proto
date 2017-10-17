@@ -1,0 +1,23 @@
+/**
+* 定义gateway和login之间的IPC的通信协议
+*/
+syntax = "proto3";
+
+package inner_ipc;
+
+//	玩家请求登录时，gateway请求Login进行登录信息确认协议
+message Gateway2LoginIPC {
+	uint32 				requestId 	= 1;		//	请求的玩家句柄
+	string 				userName 	= 2;		//	请求的用户名
+}
+
+//	确认消息返回
+message Login2GatewayIPC {
+	int32				port 		= 1;		//	游戏服务器的端口
+	int32 				rid 		= 2;		//	玩家的rid
+	int32              	requestId   = 3;		//	玩家网络句柄
+	int32               status      = 4;		//	验证状态码
+	string				key 		= 5;		//	验证登录key
+	string				msg 		= 6;		//	验证提示消息
+	string				address 	= 7;		//	游戏服务器地址
+}

@@ -1,0 +1,107 @@
+/**
+* 定义role与gameserver的通信协议
+*/
+
+syntax = "proto3";
+
+package gameserver_proto;
+
+// 请求登录gameserver服务器
+message LoginRequest {
+	int32 						rid 		= 1; 	//	登录gameserver的角色rid
+	string						key 		= 2; 	//	登录gameserver的key
+}
+
+// 登录响应
+message LoginResponse {
+	int32 						status 		= 1; 	//	登录响应状态
+	int32 						rid 		= 2; 	//	登录响应的rid
+	string 						msg 		= 3;	//	登录响应信息
+}
+
+// 请求角色信息
+message RequestRoleInfo {
+	int32 						rid 		= 1;	//	玩家rid,如果为0则请求自己的
+}
+
+// 请求角色信息的响应
+message ResponseRoleInfo {
+	int32 						rid 		= 1;	//	角色信息的rid,为0是自己的信息
+	int32 						reqrid 		= 2;
+}
+
+// 发送通信内容
+message SendChat {
+	int32 						rid 		= 1;	//	发送的玩家名
+	int32 						did			= 2;	//	目标id (玩家id、公会id)
+	int32 						msg_type 	= 3;	//	消息类型 （1:声音	2:图像	3:文字）
+	int32 						msg_size 	= 4;	//	消息的尺寸
+	string 						msg 		= 5;	//	消息内容
+}
+
+// 接收到的通信内容
+message RecvChat {
+	int32 						rid			= 1;	//	玩家rid
+	int32 						sid			= 2;	//	发送信息的玩家id
+	int32						type 		= 3;	//	聊天类型（1:个人聊天	2:公会聊天	3:世界聊天）
+	int32 						msg_type 	= 4;	//	信息类型（1:声音	2:表情	3:文本）
+	int32 						tid 		= 5;	//	模板id
+	int32 						msg_size 	= 6;	//	消息大小
+	string						sname 		= 7;	//	发送消息的玩名
+	string 						msg 		= 8; 	//	聊天内容
+}
+
+// 消息项
+message MsgItem {
+	int32 						rid			= 1;	//	玩家rid
+	int32 						srid		= 2;	//	发送信息的玩家id
+	int32						type 		= 3;	//	聊天类型（1:个人聊天	2:公会聊天	3:世界聊天）
+	int32 						msg_type 	= 4;	//	信息类型（1:声音	2:表情	3:文本）
+	int32 						tid 		= 5;	//	模板id
+	int32 						msg_size 	= 6;	//	消息大小
+	int32 						stime 		= 7;	//	消息时间
+	string						sname 		= 8;	//	发送消息的玩名
+	string 						msg 		= 9; 	//	聊天内容
+}
+
+// 好友项
+message FriendItem {
+	int32 						rid 		= 1;	//	好友rid
+	int32 						status 		= 2;	//	状态 {0:离线   1:在线   2：推荐}
+	int32 						timeline 	= 3;	//	状态时长
+	string 						username 	= 4;	// 	好友名
+}
+
+// 请求好友列表
+message	RequestFrineds {
+	int32						type 		= 1; 	//	请求的类型 {0:在线	 1:不在线 	2:所有  3:推荐好友}
+}
+
+// 响应好友列表请求
+message ResponseFriends {
+	repeated FriendItem 		friends 	= 1;	//	好友列表
+}
+
+//	请求添加好友
+message RequestAddFriend {
+	int32 						arid 		= 1;	//	好友rid
+}
+
+//	请求添加好友响应
+message ResponseAddFriend {
+	int32 						status 		= 1;	//	添加状态
+	FriendItem 					friend 		= 2;	//	好友信息
+}
+
+//	请求消息{离线消息、好友消息、系统消息}
+message RequestOfflineMsgs {
+	int32						type 		= 1;	//	请求的类型
+	int32 						rrid 		= 2;	//	请求的玩家rid
+	int32 						count 		= 3;	//	请求的数量
+}
+
+//	消息的响应列表
+message ResponseOfflineMsgs {
+	int32 						count 		= 1;	//	消息数量
+	repeated MsgItem 			msgs 		= 2;	//	消息列表
+}

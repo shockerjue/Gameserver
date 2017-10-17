@@ -1,0 +1,18 @@
+[read]
+host = 127.0.0.1
+port = 9089
+address = www.0letter.com	# address
+result = false
+name = test
+
+### mysql host config
+dbhost = localhost
+dbport = 3636
+dbname = seller
+dbuser = root
+dbpass = 576588
+
+### redis host config
+[redis]
+rshost = 127.0.0.1
+rsport = 6379
